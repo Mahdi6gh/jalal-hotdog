@@ -89,11 +89,41 @@
 </main>
 
 <div class="orderbar">
-  <div class="orderbar__info">
-    <span class="orderbar__name" id="orderName">هات‌داگ کلاسیک</span>
-    <span class="orderbar__total"><b id="orderTotal">۴۳۹٬۰۰۰</b> تومان</span>
+  <div class="orderbar__current">
+    <div class="orderbar__info">
+      <span class="orderbar__name" id="orderName">هات‌داگ کلاسیک</span>
+      <span class="orderbar__total"><b id="orderTotal">۴۳۹٬۰۰۰</b> تومان</span>
+    </div>
+    <div class="qty" role="group" aria-label="تعداد">
+      <button type="button" id="qtyPlus" aria-label="یکی بیشتر">+</button>
+      <span id="qtyVal" aria-live="polite">۱</span>
+      <button type="button" id="qtyMinus" aria-label="یکی کمتر">−</button>
+    </div>
+    <button class="btn btn--ghost" id="addBtn">+ به سبد</button>
   </div>
-  <button class="btn" id="orderBtn">ثبت سفارش</button>
+  <button class="cartbtn btn" id="cartBtn" aria-label="سبد خرید">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.3 10.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.4-1.1L20.6 8H6.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.5" r="1.6"/><circle cx="17" cy="19.5" r="1.6"/></svg>
+    <span class="cartbtn__label">سبد خرید</span>
+    <span class="cartbtn__badge" id="cartCount">۰</span>
+  </button>
+</div>
+
+<!-- Cart drawer -->
+<div class="cart-layer" id="cartLayer" hidden>
+  <aside class="cart" aria-labelledby="cartTitle">
+    <header class="cart__head">
+      <h2 id="cartTitle">سبد خرید</h2>
+      <button class="icon-btn" id="cartClose" aria-label="بستن">✕</button>
+    </header>
+    <div class="cart__list" id="cartList"></div>
+    <footer class="cart__foot">
+      <div class="cart__sum"><span id="cartSumLabel">جمع کل</span><b><span id="cartSum">۰</span> تومان</b></div>
+      <div class="cart__actions">
+        <button class="btn btn--ghost" id="moreBtn">یکی دیگه بساز</button>
+        <button class="btn" id="checkoutBtn">ثبت و چاپ فیش</button>
+      </div>
+    </footer>
+  </aside>
 </div>
 
 <!-- Receipt -->
@@ -106,7 +136,7 @@
   </div>
   <div class="receipt-actions" id="receiptActions">
     <a class="btn" id="callBtn" href="#">تماس و ثبت سفارش</a>
-    <button class="btn btn--ghost" id="againBtn">یکی دیگه بساز</button>
+    <button class="btn btn--ghost" id="againBtn">سفارش جدید</button>
   </div>
 </div>
 

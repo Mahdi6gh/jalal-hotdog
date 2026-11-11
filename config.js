@@ -10,7 +10,6 @@ window.JALAL = {
 
   // order = ترتیب روی هم قرار گرفتن لایه‌ها (کوچک‌تر = پایین‌تر)
   toppings: [
-    { id: 'tomato', name: 'گوجه', tub: 'tub-tomato', price: 30000, order: 3, sample: true }, // قیمت نمونه — در منو نیست
     { id: 'mushroom', name: 'سس قارچ', tub: 'tub-mushroom', price: 109000, order: 2 },
     { id: 'onion', name: 'پیاز کاراملی', tub: 'tub-onion', price: 89000, order: 1 },
     { id: 'cheese', name: 'دیپ پنیر', tub: 'tub-cheese', price: 129000, order: 4 },
@@ -39,7 +38,7 @@ window.JALAL = {
     { id: 'classic', name: 'کلاسیک', price: 439000, toppings: [], sauces: ['ketchup', 'pink'] },
     { id: 'onion', name: 'پیاز کاراملی', price: 479000, toppings: ['onion'], sauces: ['mayo'] },
     { id: 'mushroom', name: 'سس قارچ', price: 549000, toppings: ['mushroom'], sauces: ['ketchup'] },
-    { id: 'cheese', name: 'پنیری', price: 569000, toppings: ['tomato', 'cheese'], sauces: ['mustard'] },
+    { id: 'cheese', name: 'پنیری', price: 569000, toppings: ['cheese'], sauces: ['mustard'] },
     { id: 'bacon', name: 'بیکن', price: 590000, toppings: ['bacon'], sauces: ['pink'] },
   ],
 

@@ -5,7 +5,6 @@
   const LAYERS = {
     onion: { x: 115, y: 259, w: 653, h: 322 },
     mushroom: { x: 182, y: 259, w: 586, h: 253 },
-    tomato: { x: 172, y: 268, w: 591, h: 234 },
     cheese: { x: 158, y: 276, w: 576, h: 242 },
     bacon: { x: 135, y: 232, w: 632, h: 361 },
     ketchup: { x: 193, y: 275, w: 485, h: 212 },
@@ -73,7 +72,7 @@
   try { Sound.muted = localStorage.getItem('jalal-muted') === '1'; } catch {}
 
   /* ---------------- state ---------------- */
-  const state = { toppings: new Set(), sauces: new Set(), sides: new Set() };
+  const state = { toppings: new Set(), sauces: new Set(), sides: new Set(), qty: 1 };
   let queue = Promise.resolve();
   const enqueue = (fn) => (queue = queue.then(fn).catch((e) => console.error(e)));
   let sauceZ = 20;
@@ -256,40 +255,149 @@
   }
 
   /* ---------------- pricing ---------------- */
-  function pricing() {
+  // The hotdog being built right now, together with the drinks/sides next to it, priced as one combo.
+  function currentCombo() {
     const same = (a, set) => a.length === set.size && a.every((x) => set.has(x));
     // Sauces are free, so a menu item is matched on its toppings alone.
     const match = C.presets.find((p) => same(p.toppings, state.toppings));
-    const sauceNames = C.sauces.filter((s) => state.sauces.has(s.id)).map((s) => s.name);
     const tops = C.toppings.filter((t) => state.toppings.has(t.id));
-    const lines = [];
-    let name;
-    if (match) {
-      name = `هات‌داگ ${match.name}`;
-      lines.push({ name, price: match.price, sub: [...tops.map((t) => t.name), ...sauceNames].join('، ') });
-    } else {
-      name = 'هات‌داگ خودت';
-      lines.push({ name: C.base.name, price: C.base.price, sub: sauceNames.length ? `سس: ${sauceNames.join('، ')}` : 'بدون سس' });
-      for (const t of tops) lines.push({ name: `+ ${t.name}`, price: t.price });
-    }
-    for (const s of C.sides) if (state.sides.has(s.id)) lines.push({ name: s.name, price: s.price });
-    const total = lines.reduce((a, l) => a + (l.price || 0), 0);
-    const ask = lines.some((l) => l.price === null);
-    return { match, name, lines, total, ask };
+    const sauceNames = C.sauces.filter((s) => state.sauces.has(s.id)).map((s) => s.name);
+    const sides = C.sides.filter((s) => state.sides.has(s.id));
+    const hotdog = match ? match.price : C.base.price + tops.reduce((a, t) => a + t.price, 0);
+    const parts = tops.map((t) => t.name);
+    if (sauceNames.length) parts.push(`سس: ${sauceNames.join('، ')}`);
+    return {
+      key: [state.toppings, state.sauces, state.sides].map((s) => [...s].sort().join(',')).join('|'),
+      match,
+      name: match ? `هات‌داگ ${match.name}` : 'هات‌داگ خودت',
+      desc: parts.join(' · ') || 'بدون سس',
+      sides: sides.map((s) => s.name),
+      unit: hotdog + sides.reduce((a, s) => a + (s.price || 0), 0),
+      ask: sides.some((s) => s.price === null),
+    };
   }
+
+  const cart = [];
+  const cartCount = () => cart.reduce((a, l) => a + l.qty, 0);
+  const cartTotal = () => cart.reduce((a, l) => a + l.unit * l.qty, 0);
   const shownTotal = { v: C.base.price };
   function update() {
-    const p = pricing();
-    $('#orderName').textContent = p.name + (p.ask ? ' + نوشیدنی' : '');
-    gsap.to(shownTotal, { v: p.total, duration: 0.5, ease: 'power2.out', onUpdate: () => ($('#orderTotal').textContent = fa(Math.round(shownTotal.v / 1000) * 1000)) });
-    for (const [id, b] of Object.entries(presetBtns)) b.classList.toggle('is-active', p.match?.id === id);
+    const c = currentCombo();
+    $('#orderName').textContent = c.name + (c.sides.length ? ` + ${c.sides.join('، ')}` : '');
+    gsap.to(shownTotal, { v: c.unit * state.qty, duration: 0.5, ease: 'power2.out', onUpdate: () => ($('#orderTotal').textContent = fa(Math.round(shownTotal.v / 1000) * 1000)) });
+    $('#qtyVal').textContent = fa(state.qty);
+    $('#qtyMinus').disabled = state.qty <= 1;
+    $('#cartCount').textContent = fa(cartCount());
+    $('#cartBtn').classList.toggle('has-items', cart.length > 0);
+    for (const [id, b] of Object.entries(presetBtns)) b.classList.toggle('is-active', c.match?.id === id);
   }
+
+  /* ---------------- cart ---------------- */
+  // A static copy of the box with its visible layers, used as the cart thumbnail.
+  function snapshot() {
+    const s = boxWrap.cloneNode(true);
+    s.querySelectorAll('#steam, #tray').forEach((n) => n.remove());
+    s.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+    s.removeAttribute('id'); s.removeAttribute('style'); s.className = 'thumb-box';
+    s.querySelectorAll('.layer').forEach((l) => { if (l.style.visibility === 'hidden') l.remove(); else Object.assign(l.style, { transform: '', clipPath: '' }); });
+    return s;
+  }
+  // Clear the build without animating each layer (used when the finished box leaves for the cart).
+  function resetBuild() {
+    for (const id of state.toppings) { gsap.set(layerEls[id], { opacity: 0, visibility: 'hidden' }); setOn(toppingBtns[id], false); }
+    for (const id of state.sauces) { gsap.set(layerEls[id], { opacity: 0, visibility: 'hidden' }); setOn(sauceBtns[id], false); }
+    for (const id of state.sides) { trayEls[id]?.remove(); delete trayEls[id]; setOn(sideBtns[id], false); }
+    state.toppings.clear(); state.sauces.clear(); state.sides.clear(); state.qty = 1;
+  }
+
+  async function addToCart() {
+    const c = currentCombo(), qty = state.qty;
+    const line = cart.find((l) => l.key === c.key);
+    if (line) line.qty += qty; else cart.push({ ...c, qty, thumb: snapshot() });
+
+    // the finished box flies into the cart button, then a fresh one drops onto the counter
+    const from = rectOf(boxWrap), to = rectOf($('#cartBtn'));
+    const clone = boxWrap.cloneNode(true);
+    clone.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+    clone.removeAttribute('id'); clone.classList.add('fly');
+    Object.assign(clone.style, { width: `${from.width}px`, height: `${from.height}px`, margin: 0 });
+    fly.append(clone);
+    resetBuild();
+    gsap.set(boxWrap, { autoAlpha: 0 });
+    Sound.play('paperQuick');
+    await gsap.fromTo(clone, { x: from.left, y: from.top, scale: 1, rotation: 0 },
+      { x: to.left + to.width / 2 - from.width / 2, y: to.top + to.height / 2 - from.height / 2, scale: 0.06, rotation: -10, duration: 0.7 * speed, ease: 'power2.in' });
+    clone.remove();
+    Sound.play('pop');
+    update(); renderCart();
+    gsap.fromTo('#cartCount', { scale: 1.8 }, { scale: 1, duration: 0.5, ease: 'elastic.out(1, 0.4)' });
+    gsap.fromTo('#cartBtn', { rotation: -6 }, { rotation: 0, duration: 0.5, ease: 'elastic.out(1, 0.3)' });
+    await gsap.fromTo(boxWrap, { autoAlpha: 1, y: -window.innerHeight * 0.6, rotation: -5 }, { y: 0, rotation: 0, duration: 0.8 * speed, ease: 'bounce.out' });
+    Sound.play('drop');
+    steamBurst();
+  }
+
+  function renderCart() {
+    const list = $('#cartList');
+    list.innerHTML = '';
+    if (!cart.length) list.innerHTML = '<p class="cart__empty">سبد خالیه. یه هات‌داگ بساز و «+ به سبد» رو بزن.</p>';
+    cart.forEach((l, i) => {
+      const row = document.createElement('div');
+      row.className = 'cline';
+      row.innerHTML = `
+        <div class="cline__thumb"></div>
+        <div class="cline__body">
+          <b class="cline__name">${l.name}</b>
+          <small>${l.desc}</small>
+          ${l.sides.length ? `<small>+ ${l.sides.join('، ')}</small>` : ''}
+          <span class="cline__price">${fa(l.unit * l.qty)} تومان${l.ask ? ' <em>+ نوشیدنی (استعلام)</em>' : ''}</span>
+        </div>
+        <div class="qty qty--sm" role="group" aria-label="تعداد">
+          <button type="button" data-act="plus" aria-label="یکی بیشتر">+</button>
+          <span>${fa(l.qty)}</span>
+          <button type="button" data-act="minus" aria-label="${l.qty > 1 ? 'یکی کمتر' : 'حذف'}">${l.qty > 1 ? '−' : '✕'}</button>
+        </div>`;
+      row.querySelector('.cline__thumb').append(l.thumb.cloneNode(true));
+      row.querySelector('[data-act="plus"]').onclick = () => { l.qty++; Sound.play('pop'); update(); renderCart(); };
+      row.querySelector('[data-act="minus"]').onclick = () => { if (--l.qty <= 0) cart.splice(i, 1); Sound.play('pop'); update(); renderCart(); };
+      list.append(row);
+    });
+    const ask = cart.some((l) => l.ask);
+    $('#cartSumLabel').textContent = `جمع کل${ask ? ' (بدون نوشیدنی)' : ''}`;
+    $('#cartSum').textContent = fa(cartTotal());
+    $('#checkoutBtn').disabled = !cart.length;
+  }
+
+  function openCart() {
+    renderCart();
+    const layer = $('#cartLayer');
+    layer.hidden = false;
+    const mobile = matchMedia('(max-width: 900px)').matches;
+    gsap.fromTo(layer, { opacity: 0 }, { opacity: 1, duration: 0.2 });
+    gsap.fromTo('.cart', mobile ? { yPercent: 100, xPercent: 0 } : { xPercent: -110, yPercent: 0 }, { xPercent: 0, yPercent: 0, duration: 0.45 * speed, ease: 'power3.out' });
+    Sound.play('paperQuick');
+  }
+  function closeCart() {
+    const mobile = matchMedia('(max-width: 900px)').matches;
+    gsap.to('.cart', { ...(mobile ? { yPercent: 100 } : { xPercent: -110 }), duration: 0.3 * speed, ease: 'power2.in' });
+    return gsap.to('#cartLayer', { opacity: 0, duration: 0.3, onComplete: () => ($('#cartLayer').hidden = true) });
+  }
+
+  $('#qtyPlus').onclick = () => { state.qty = Math.min(20, state.qty + 1); Sound.play('pop'); update(); };
+  $('#qtyMinus').onclick = () => { state.qty = Math.max(1, state.qty - 1); Sound.play('pop'); update(); };
+  $('#addBtn').onclick = () => enqueue(addToCart);
+  // With an empty cart, the cart button sends the current hotdog straight in, so a single order is still one tap.
+  $('#cartBtn').onclick = () => enqueue(async () => { if (!cart.length) await addToCart(); openCart(); });
+  $('#cartClose').onclick = closeCart;
+  $('#moreBtn').onclick = closeCart;
+  $('#cartLayer').addEventListener('click', (e) => { if (e.target.id === 'cartLayer') closeCart(); });
+  $('#checkoutBtn').onclick = () => { closeCart(); enqueue(showReceipt); };
 
   /* ---------------- receipt ---------------- */
   async function showReceipt() {
-    const p = pricing();
     const now = new Date();
     const no = String(Math.floor(1000 + Math.random() * 9000));
+    const ask = cart.some((l) => l.ask);
     $('#receipt').innerHTML = `
       <div class="receipt__head">
         <img src="assets/img/cat-char.svg" alt="">
@@ -298,9 +406,10 @@
       </div>
       <div class="receipt__meta"><span>سفارش #${fa(+no)}</span><span>${now.toLocaleDateString('fa-IR')} · ${now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</span></div>
       <hr>
-      ${p.lines.map((l) => `<div class="receipt__row"><span>${l.name}${l.sub ? `<small>${l.sub}</small>` : ''}</span><span>${l.price === null ? 'استعلام' : fa(l.price)}</span></div>`).join('')}
+      ${cart.map((l) => `<div class="receipt__row"><span>${l.name} × ${fa(l.qty)}<small>${l.desc}${l.sides.length ? ` · + ${l.sides.join('، ')}` : ''}</small></span><span>${fa(l.unit * l.qty)}${l.ask ? '<small>+ استعلام</small>' : ''}</span></div>`).join('')}
       <hr>
-      <div class="receipt__row receipt__row--total"><span>جمع${p.ask ? ' (بدون نوشیدنی)' : ''}</span><span>${fa(p.total)} تومان</span></div>
+      <div class="receipt__row"><span>تعداد هات‌داگ</span><span>${fa(cartCount())}</span></div>
+      <div class="receipt__row receipt__row--total"><span>جمع${ask ? ' (بدون نوشیدنی)' : ''}</span><span>${fa(cartTotal())} تومان</span></div>
       <div class="receipt__foot">${C.address}<br>تلفن: ${C.phone.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d])}<br>نوش جان، افسانه! 🌭</div>`;
     const layer = $('#receiptLayer');
     layer.hidden = false;
@@ -315,8 +424,7 @@
   function hideReceipt() {
     gsap.to('#receiptLayer', { opacity: 0, duration: 0.25, onComplete: () => ($('#receiptLayer').hidden = true) });
   }
-  $('#orderBtn').onclick = () => enqueue(showReceipt);
-  $('#againBtn').onclick = () => { hideReceipt(); enqueue(async () => { await clearAll(); for (const id of [...state.sides]) await toggleSide(id, true); }); };
+  $('#againBtn').onclick = () => { hideReceipt(); cart.length = 0; renderCart(); update(); };
   $('#receiptLayer').addEventListener('click', (e) => { if (e.target.id === 'receiptLayer') hideReceipt(); });
   for (const a of [$('#callBtn'), $('#callTop')]) a.href = `tel:${C.phone}`;
 
