@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>جلال — هات‌داگت رو خودت بساز</title>
+<meta name="description" content="جلال · Food for Legends — هات‌داگ پرشین؛ تاپینگ و سس رو خودت انتخاب کن.">
+<meta name="theme-color" content="#9F1C10">
+<link rel="icon" href="assets/img/cat-char.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Splash: also unlocks audio on the first tap -->
+<div class="splash" id="splash">
+  <div class="splash__rays" aria-hidden="true"></div>
+  <div class="checker checker--top" aria-hidden="true"></div>
+  <div class="splash__props" aria-hidden="true">
+    <img src="assets/img/bottle-mustard.webp" alt="">
+    <img src="assets/img/can-red.webp" alt="">
+    <img src="assets/img/fries-cup.webp" alt="">
+    <img src="assets/img/bottle-ketchup.webp" alt="">
+  </div>
+  <div class="checker checker--bottom" aria-hidden="true"></div>
+  <div class="splash__inner">
+    <div class="stamp"><img src="assets/img/cat-char.svg" alt=""></div>
+    <h1 class="wordmark">جلال</h1>
+    <p class="tagline">FOOD FOR LEGENDS</p>
+    <p class="splash__lead">هات‌داگت رو خودت بساز</p>
+    <button class="btn btn--big" id="startBtn" disabled>
+      <span class="btn__label">در حال آماده‌سازی…</span>
+    </button>
+    <div class="loader"><span id="loaderBar"></span></div>
+  </div>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="#" aria-label="جلال">
+    <span class="brand__stamp"><img src="assets/img/cat-char.svg" alt=""></span>
+    <span class="brand__text">
+      <span class="brand__name">جلال</span>
+      <span class="brand__tag">FOOD FOR LEGENDS</span>
+    </span>
+  </a>
+  <p class="topbar__hint">تاپینگ و سس رو انتخاب کن، بقیه‌ش با ما.</p>
+  <div class="topbar__actions">
+    <button class="icon-btn" id="muteBtn" aria-pressed="false" aria-label="قطع صدا">
+      <svg viewBox="0 0 24 24" class="ico-on"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 24 24" class="ico-off"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <a class="btn btn--ghost" id="callTop" href="#">تماس</a>
+  </div>
+</header>
+
+<main class="scene" id="scene">
+  <!-- right column (RTL start): toppings -->
+  <section class="panel panel--toppings" aria-labelledby="tTitle">
+    <h2 class="panel__title" id="tTitle"><span>+</span> تاپینگ</h2>
+    <div class="shelf" id="toppings"></div>
+  </section>
+
+  <section class="center">
+    <div class="sauces" id="sauces" aria-label="سس‌ها"></div>
+
+    <div class="stage">
+      <div class="box-wrap" id="boxWrap">
+        <img class="box-img" src="assets/img/box.webp" alt="هات‌داگ داخل جعبه">
+        <div class="layers" id="layers"></div>
+        <div class="steam" id="steam" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="tray" id="tray" aria-label="نوشیدنی و کناری‌ها"></div>
+      </div>
+    </div>
+
+    <div class="presets">
+      <span class="presets__label">منوی آماده:</span>
+      <div class="presets__list" id="presets"></div>
+      <button class="chip chip--reset" id="resetBtn">از اول</button>
+    </div>
+  </section>
+
+  <!-- left column: drinks & sides -->
+  <section class="panel panel--sides" aria-labelledby="sTitle">
+    <h2 class="panel__title" id="sTitle"><span>+</span> نوشیدنی و کناری</h2>
+    <div class="shelf shelf--sides" id="sides"></div>
+  </section>
+</main>
+
+<div class="orderbar">
+  <div class="orderbar__info">
+    <span class="orderbar__name" id="orderName">هات‌داگ کلاسیک</span>
+    <span class="orderbar__total"><b id="orderTotal">۴۳۹٬۰۰۰</b> تومان</span>
+  </div>
+  <button class="btn" id="orderBtn">ثبت سفارش</button>
+</div>
+
+<!-- Receipt -->
+<div class="receipt-layer" id="receiptLayer" hidden>
+  <div class="printer">
+    <div class="printer__slot"></div>
+    <div class="receipt-clip" id="receiptClip">
+      <article class="receipt" id="receipt"></article>
+    </div>
+  </div>
+  <div class="receipt-actions" id="receiptActions">
+    <a class="btn" id="callBtn" href="#">تماس و ثبت سفارش</a>
+    <button class="btn btn--ghost" id="againBtn">یکی دیگه بساز</button>
+  </div>
+</div>
+
+<div class="fly-layer" id="flyLayer" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<script src="vendor/gsap.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
